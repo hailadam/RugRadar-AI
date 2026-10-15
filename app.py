@@ -1,20 +1,28 @@
-"""Minimal read-only Base token scanner — Streamlit entrypoint."""
+"""Read-only multi-network token research dashboard."""
 from __future__ import annotations
 import base64
 from pathlib import Path
+import sqlite3
 
 from dotenv import load_dotenv
 import streamlit as st
 
-from rugradar.history import latest_liquidity, save_scan, token_history
-from rugradar.market import DataSourceError, fetch_pairs, snapshot_from_pairs, validate_address
-from rugradar.scoring import assess
-from rugradar.security import fetch_security
-
 load_dotenv()
+
+from rugradar.history import token_history
+from rugradar.networks import NETWORKS, get_network
+from rugradar.scanner import ScanResult, analyze_token
+
 logo_path = Path(__file__).parent / "assets" / "logo.png"
 logo_data = base64.b64encode(logo_path.read_bytes()).decode("ascii")
-st.set_page_config(page_title="RugRadar AI | Base", page_icon=str(logo_path), layout="wide")
+st.set_page_config(page_title="RugRadar AI | Token Research", page_icon=str(logo_path), layout="wide")
+
+
+def clear_result():
+    st.session_state.pop("scan_result", None)
+
+
+active_network = get_network(st.session_state.get("network", "base"))
 st.markdown("""<style>
     .stApp {background: #08111F; color: #E7EEF9;}
     .block-container {max-width: 1080px; padding: 4.25rem 2.2rem 2rem;}
@@ -82,71 +90,71 @@ st.markdown(f"""
         <div><div class="brand-name">RugRadar <span>AI</span></div>
             <div class="brand-note">TOKEN RISK INTELLIGENCE</div></div>
     </div>
-    <div class="network-pill"><span class="network-dot" aria-hidden="true"></span>BASE MAINNET</div>
+    <div class="network-pill"><span class="network-dot" aria-hidden="true"></span>{active_network.name.upper()} MAINNET</div>
 </div>
-<p class="eyebrow">BASE TOKEN RESEARCH</p>
+<p class="eyebrow">MULTICHAIN TOKEN RESEARCH</p>
 """, unsafe_allow_html=True)
 st.title("A clearer view of token risk.")
 st.markdown('<p class="hero-description">Review market signals, liquidity, and contract warnings in one place. '
             'Read-only analysis. No wallet connection required.</p>', unsafe_allow_html=True)
 
+selected_network = st.selectbox("Network", list(NETWORKS), format_func=lambda key: NETWORKS[key].name,
+                                key="network", on_change=clear_result)
+active_network = get_network(selected_network)
+st.caption("Choose the network where the token was issued. The same address can refer to different contracts on different networks.")
+
 with st.form("scan_form"):
     input_col, button_col = st.columns([4, 1.35], vertical_alignment="bottom")
     with input_col:
-        address = st.text_input("Contract address", placeholder="0x… · Base token contract",
+        address = st.text_input("Contract address" if active_network.evm else "Token mint address",
+                                placeholder="0x… · token contract" if active_network.evm else "Solana token mint address",
                                 key="contract_address")
     with button_col:
         submitted = st.form_submit_button("Analyze Token", use_container_width=True, type="primary")
     with st.expander("Analysis options"):
-        check_security = st.checkbox("Request optional GoPlus contract-security data", value=False,
-                                      help="May be unavailable or require API authorization.")
+        check_security = st.checkbox("Request GoPlus contract-security data", value=active_network.goplus_chain_id is not None,
+                                      disabled=active_network.goplus_chain_id is None,
+                                      help="Available on the supported EVM networks. Solana uses market data and optional configured blockchain reads. Provider data can be incomplete or unavailable.")
+        st.caption(f"Optional direct blockchain lookup: configure {active_network.rpc_env} in your local .env file. It is read-only.")
 
 if submitted:
     try:
-        address = validate_address(address)
-        with st.spinner("Fetching Base market data…"):
-            pairs = fetch_pairs(address)
-            snapshot = snapshot_from_pairs(address, pairs)
-        security = None
-        warning = None
-        if check_security:
-            try:
-                with st.spinner("Checking contract risk data…"):
-                    security = fetch_security(address)
-            except DataSourceError as exc:
-                warning = str(exc)
-        prior_liquidity = latest_liquidity(address)
-        report = assess(snapshot, security, prior_liquidity)
-        save_scan(snapshot, report)
-        st.session_state["scan_result"] = (snapshot, report, warning)
-    except (ValueError, DataSourceError) as exc:
-        st.session_state.pop("scan_result", None)
+        with st.spinner(f"Checking available data on {active_network.name}…"):
+            st.session_state["scan_result"] = analyze_token(address, selected_network, check_security)
+    except ValueError as exc:
+        clear_result()
         st.error(str(exc))
-    except OSError as exc:
-        st.session_state.pop("scan_result", None)
-        st.error(f"Local history could not be written: {exc}")
 
-if "scan_result" in st.session_state:
-    snapshot, report, warning = st.session_state["scan_result"]
+result = st.session_state.get("scan_result")
+if result is not None and (not isinstance(result, ScanResult) or result.snapshot.network != selected_network):
+    clear_result()
+    result = None
+
+if result is not None:
+    snapshot, report = result.snapshot, result.report
     st.markdown('<p class="overview-label">TOKEN OVERVIEW</p>', unsafe_allow_html=True)
     st.subheader(f"{snapshot.name} ({snapshot.symbol})")
-    st.caption(f"{snapshot.dex} · {snapshot.captured_at} UTC · Base chain ID 8453")
+    st.caption(f"{active_network.name} · {snapshot.dex} · {snapshot.captured_at}")
+    st.code(snapshot.address, language=None)
+    if not report.is_complete:
+        st.warning("Assessment incomplete. Some checks have no usable data; a low warning score does not establish safety.")
 else:
-    snapshot = report = warning = None
+    snapshot = report = None
     st.markdown('<p class="overview-label">MARKET OVERVIEW</p>', unsafe_allow_html=True)
 
 col1, col2, col3 = st.columns(3)
 with col1:
     with st.container(key="risk_card"):
-        st.metric("Observed risk", f"{report.score}/100" if report else "—")
-        if report:
+        risk_value = ("Incomplete" if report.score == 0 and not report.is_complete else f"{report.score}/100") if report else "—"
+        st.metric("Observed warning score", risk_value)
+        if report and (report.score > 0 or report.is_complete):
             st.progress(report.score / 100)
         st.caption(report.level if report else "Analyze a token to view risk signals.")
 with col2:
     with st.container(key="liquidity_card"):
         st.metric("Pool liquidity", (f"${snapshot.liquidity_usd:,.0f}"
                   if snapshot.liquidity_usd is not None else "Unavailable") if snapshot else "—")
-        st.caption("Most-liquid available Base pair")
+        st.caption("Selected indexed trading pair")
 with col3:
     with st.container(key="volume_card"):
         st.metric("24h volume", (f"${snapshot.volume_h24_usd:,.0f}"
@@ -157,28 +165,39 @@ if snapshot is not None and report is not None:
     st.caption(f"Data coverage: {report.coverage} · Heuristic score, NOT a fraud probability")
     price = f"${snapshot.price_usd:.8g}" if snapshot.price_usd is not None else "Unavailable"
     st.caption(f"Token price: {price}")
-    if not snapshot.price_is_available:
-        st.info("Only quote-side pools were available. DEX Screener's base-token price cannot be used as this token's price.")
+    if snapshot.market_available and not snapshot.price_is_available:
+        st.info("Price data is unavailable for the requested token. Quote-side pool prices are not assigned to this token.")
     with st.container(border=True):
         st.subheader("Risk observations")
         for finding in report.findings:
             st.markdown(f"- {finding}")
-    if warning:
-        st.warning(f"Contract-security lookup unavailable: {warning}")
+    for warning in result.warnings:
+        st.warning(warning)
+    with st.expander("Sources and check coverage", expanded=not report.is_complete):
+        st.dataframe([{"Check": source.name, "Status": source.status, "Details": source.details}
+                      for source in result.sources], hide_index=True)
+        st.caption("The weighted score covers configured market rules and GoPlus flags. Optional blockchain observations are listed separately. Historical rug-pull records, holder concentration, liquidity locks, and sell simulations are not assessed.")
     if snapshot.pair_url:
         st.link_button("View trading pair on DEX Screener ↗", snapshot.pair_url)
 
-    history = token_history(snapshot.address)
     with st.expander("Saved scan history"):
-        if len(history) >= 2:
-            st.line_chart(history, x="captured_at", y="risk_score", y_label="Observed risk score")
-            st.line_chart(history, x="captured_at", y="liquidity_usd", y_label="Liquidity (USD)")
-        else:
-            st.caption("Scan this token again later to visualize changes in liquidity and risk.")
+        try:
+            history = token_history(snapshot.address, network=selected_network)
+            risk_history = [row for row in history if row["risk_score"] is not None]
+            liquidity_history = [row for row in history if row["liquidity_usd"] is not None]
+            if len(risk_history) >= 2:
+                st.line_chart(risk_history, x="captured_at", y="risk_score", y_label="Observed warning score")
+            if len(liquidity_history) >= 2:
+                st.line_chart(liquidity_history, x="captured_at", y="liquidity_usd", y_label="Liquidity (USD)")
+            st.caption("History is separate for each network. Incomplete zero scores are omitted from the score chart. Liquidity trend scoring compares the same pool only.")
+            if len(history) < 2:
+                st.caption("Analyze this token again later to visualize changes in liquidity and warnings.")
+        except (OSError, sqlite3.Error):
+            st.warning("Saved history could not be read. The current provider results are still shown above.")
 else:
     st.markdown('''<div class="empty-state">
         <div class="empty-title">Your next analysis starts here.</div>
-        <div class="empty-description">Enter a Base token contract above to review its available market data.<br>
+        <div class="empty-description">Choose a network and enter a token address to review available evidence.<br>
         Results appear after analysis; unavailable signals remain unknown.</div>
     </div>''', unsafe_allow_html=True)
 

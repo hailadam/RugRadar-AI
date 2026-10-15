@@ -1,107 +1,115 @@
-# ◉ RugRadar AI — Base Token Risk Scanner
+# RugRadar AI — Multi-network Token Research
 
-A **minimal, read-only** cryptocurrency risk-research dashboard for token contracts on **Base Mainnet (chain ID 8453)**. It fetches authentic available DEX Screener pool metrics, scores a small set of **transparent warning rules**, optionally requests GoPlus security indicators, and records scans in local SQLite.
+A read-only Streamlit dashboard for available market and contract observations. Choose a network, enter a token address, and review liquidity, volume, warning points, source status, and saved scan history.
 
-> **Not a validated AI predictor.** The 0–100 score is an experimental *heuristic indicator*, **not a probability of fraud or a forecast of an imminent rug pull**. A low score is not a safety certification. RugRadar does not audit contracts, control funds, or trade.
+The score is a collection of experimental rules, not a fraud probability or a validated prediction model. Missing observations are unknown. A completed check or low score does not certify safety.
 
-## Included features
+## Supported mainnets
 
-- One-field Base token address scanner (validated `0x` + 40 hex digits).
-- Most-liquid Base pair selection, with protection against mislabeling the quote token's price.
-- Liquidity, 24h volume and token price (where available).
-- Explainable warnings for low liquidity, large daily price drops, sell-heavy transaction counts, and liquidity change since the last saved scan.
-- Optional GoPlus checks (can be unavailable, rate-limited, or require API authorization).
-- Local SQLite scan history and simple risk/liquidity charts after repeated scans.
-- Offline unit tests and GitHub Actions CI.
-- Navy Streamlit dashboard with blue accents, a Base Mainnet indicator, one contract-address input, and compact risk, liquidity, and volume cards.
+| Network | Market data | GoPlus flags | Optional blockchain lookup |
+|---|---|---|---|
+| Base | DEX Screener | Subject to provider coverage | Contract bytecode and metadata |
+| Ethereum | DEX Screener | Subject to provider coverage | Contract bytecode and metadata |
+| BNB Chain | DEX Screener | Subject to provider coverage | Contract bytecode and metadata |
+| Arbitrum | DEX Screener | Subject to provider coverage | Contract bytecode and metadata |
+| Optimism | DEX Screener | Subject to provider coverage | Contract bytecode and metadata |
+| Polygon | DEX Screener | Subject to provider coverage | Contract bytecode and metadata |
+| Avalanche C-Chain | DEX Screener | Subject to provider coverage | Contract bytecode and metadata |
+| Solana | DEX Screener | No adapter in this version | SPL mint, decimals, mint/freeze authorities |
 
-## Setup on a Mac
+Select the correct network. EVM addresses use `0x` and 40 hexadecimal characters. Solana needs a case-sensitive base58 mint address that decodes to 32 bytes. Valid syntax alone does not establish that a token exists.
+
+This version can attempt a report for any syntactically valid address on these networks. Providers may have no information about a token. Missing trading pairs no longer stop independent contract checks. Other networks are not yet supported.
+
+## Run on your Mac
+
+Open the existing project folder in VS Code. For a GitHub ZIP, copy its contents into that folder, preserving local `.env`, `.venv`, and `data/` files. Do not nest a second project inside it. Back up local edits before replacing source files.
 
 ```bash
-# Clone the GitHub repository (or unzip the downloaded project and open it in VS Code)
-git clone https://github.com/hailadam/RugRadar-AI.git
-cd RugRadar-AI
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 python -m streamlit run app.py --server.port 8501
 ```
 
-If the repository is private, make sure your Mac is signed into GitHub (e.g. GitHub CLI `gh auth login` or VS Code GitHub authentication).
+Open `http://localhost:8501`. Save interface edits and use Streamlit's **Rerun** button when needed. After replacing backend files, stop Streamlit with **Ctrl+C** and run the startup command again so imported modules reload. Python 3.12 is used in CI.
 
-Open the localhost URL shown in the Terminal (usually `http://localhost:8501`).
+For a new checkout:
 
-For a downloaded ZIP, unzip it once, open the existing `RugRadar-AI` folder, and start with `python3 -m venv .venv`; skip the Git clone commands above. If a project folder already exists, back it up and replace the included source files there rather than nesting another project inside it. Retain your local `.env` and `data/` files.
+```bash
+git clone --branch interface-redesign https://github.com/hailadam/RugRadar-AI.git
+cd RugRadar-AI
+```
 
-### Edit the interface locally
+## Provider configuration
 
-- `app.py` contains the dashboard layout and styling.
-- `.streamlit/config.toml` contains the navy theme and blue accent colors.
-- `assets/logo.png` is the white logo used in the header and browser tab.
-- Keep Streamlit running while editing; save the file and choose **Rerun** in the browser if it does not refresh automatically.
-- Optional GoPlus checks remain available under **Analysis options**, disabled by default.
-- Risk, liquidity, and volume cards show placeholders until a scan completes. Missing market data is labeled unavailable.
+Market lookup needs Internet access to `api.dexscreener.com`. GoPlus needs `api.gopluslabs.io`; provider limits and authorization apply. GoPlus checks are requested by default on supported EVM networks and can be disabled under **Analysis options**.
 
-The token scanning, API clients, scoring rules, and SQLite operations are in `rugradar/` and are separate from the interface.
+Copy `.env.example` to `.env` if needed. An existing `GOPLUS_API_KEY` is reused. Enter credentials only in your local `.env` or secure environment settings; never commit them.
 
-### Test offline
+For optional direct blockchain lookup, set the matching mainnet endpoint:
+
+```text
+BASE_RPC_URL=
+ETHEREUM_RPC_URL=
+BSC_RPC_URL=
+ARBITRUM_RPC_URL=
+OPTIMISM_RPC_URL=
+POLYGON_RPC_URL=
+AVALANCHE_RPC_URL=
+SOLANA_RPC_URL=
+```
+
+Use a trusted HTTPS RPC provider or a local node. The app verifies EVM chain IDs and the Solana mainnet genesis hash before account reads. Unset endpoints show **not configured**; RPC errors conceal credential-bearing URLs.
+
+Only read methods are used. No wallets, private keys, signed transactions, or trading are required. EVM metadata does not establish ERC-20 compliance or safety. Solana authority observations appear separately and are not added to the weighted market/GoPlus score.
+
+## Interpret results
+
+- Market checks use one selected indexed pool: liquidity, 24-hour price change, and transaction counts. Quote-side prices stay unavailable and quote-side buy/sell direction is reversed.
+- Liquidity trends compare saved observations for the same token, network, and pool. A first scan has no earlier local baseline. The app does not reconstruct older on-chain withdrawals.
+- Five GoPlus flags are considered: honeypot, mintability, hidden owner, owner balance changes, and blacklist capability. Only explicit true/false values count as known. Empty, partial, and unknown responses remain incomplete.
+- A positive honeypot flag produces a high-severity warning even without market data. Warning points are experimental and uncalibrated.
+- A zero-point result with incomplete coverage displays **Incomplete**, rather than `0/100`. Positive findings can appear alongside incomplete coverage.
+- **Sources and check coverage** identifies available, partial, unavailable, unsupported, and disabled checks. Provider failure never becomes a passed security check.
+
+This version does not provide exhaustive token discovery, batch scanning, continuous monitoring, historical incident databases, holder concentration analysis, liquidity-lock verification, source auditing, or sell simulations. It cannot identify every scam or predict every future liquidity withdrawal.
+
+## Local history
+
+SQLite defaults to `data/rugradar.db`; set `RUGRADAR_DB_PATH` in `.env` to change it. Existing databases receive additive columns and retain old rows, addresses, and scores. Legacy rows belong to Base. Histories are separate by network; Solana address case is preserved. Incomplete or legacy zero scores are omitted from the score chart while their original points remain stored.
+
+SQLite is suitable for local use. Hosted ephemeral filesystems can lose history after restart; durable background monitoring needs persistent storage and a separate scheduled collector.
+
+## Tests
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-Use a known Base token, such as Base WETH (`0x4200000000000000000000000000000000000006`), to test API connectivity. WETH is only a **plumbing test**, not a target meme coin and not a security benchmark. A given address may lack a supported trading pair, or an upstream provider may be unavailable.
+Tests use mocked providers and temporary databases. They cover network selection, address validation, pool filtering, partial failures, read-only RPC behavior, incomplete scoring, database migration, and chain/pool isolation. They verify implemented behavior rather than real-world detection accuracy. Live integration must also be checked from a network that permits the configured destinations.
 
-The application must be tested online for live integration: the offline unit tests use mocks rather than real requests.
-
-## Optional security API
-
-By default the GoPlus checkbox is unchecked. You can enable it for an individual scan. If GoPlus requires an access token in your usage tier, create `.env` locally (from `.env.example`) containing:
+## Files
 
 ```text
-GOPLUS_API_KEY=your_actual_key
+app.py                         Dashboard layout and interaction
+assets/logo.png                Website logo and browser icon
+.streamlit/config.toml         Navy theme and blue accents
+rugradar/networks.py           Network registry and address validation
+rugradar/market.py             Chain-specific market adapter
+rugradar/security.py           EVM GoPlus adapter and flag parsing
+rugradar/chain.py              Optional read-only RPC lookups
+rugradar/scanner.py            Independent checks and partial reports
+rugradar/scoring.py            Warning rules and explicit unknowns
+rugradar/history.py            Migrating, network-aware SQLite history
+tests/                         Offline regression tests
+.github/workflows/tests.yml    CI tests
 ```
 
-Never push `.env` or keys to GitHub. API coverage and terms may change. An unavailable security response is clearly labeled unknown.
+## References
 
-## Deploy on Streamlit Community Cloud
-
-1. Make sure `app.py`, `requirements.txt`, `rugradar/` and `.streamlit/config.toml` are committed in your GitHub repository.
-2. Open **https://share.streamlit.io/** and sign in with GitHub.
-3. Select **Create app → Yup, I have an app**.
-4. Repository: `hailadam/RugRadar-AI` · Branch: `main` · Main file path: `app.py`.
-5. Choose Python 3.12 if offered (all bundled code is also compatible with newer versions supported by Streamlit), then click **Deploy**.
-6. If your repo is **private**, authorize Streamlit's GitHub access to private repositories. The deployed app will normally be private initially. You can adjust Streamlit sharing separately.
-7. Open the generated `*.streamlit.app` URL and scan a Base contract.
-
-**Hosting limitation:** Community Cloud's local filesystem is ephemeral. The included SQLite history is reliable for **local development**, not durable multi-user cloud monitoring. Scans on the deployed app can be lost after restart or re-deployment. Use a managed persistent database and a separately scheduled collector before calling this a 24/7 alerting service. This MVP does not continuously monitor tokens in the background.
-
-## Structure
-
-```text
-app.py                         Streamlit dashboard layout and styling
-rugradar/market.py             DEX Screener client + robust pair parsing
-rugradar/security.py           Optional GoPlus security client
-rugradar/scoring.py            Explainable heuristics + data coverage
-rugradar/history.py            Local SQLite scan history
-.streamlit/config.toml         Dark UI theme
-assets/logo.png                Website logo
-.github/workflows/tests.yml    CI unit tests
-tests/                         Fully offline test suite
-```
-
-## Future work
-
-1. Add a data-source health section and provider caching/rate-limit handling.
-2. Add scheduled background sampling **outside** Streamlit with a stable database.
-3. Track liquidity and holder concentrations using verified on-chain sources.
-4. Define independently verifiable rug-pull labels and train a proper model with time-based splits.
-5. Evaluate false positives, precision-recall, and actual alert lead times before claiming prediction abilities.
-
-## Data sources
-
-- [DEX Screener official API](https://docs.dexscreener.com/api/reference) — Base token pairs.
-- [GoPlus token security API](https://docs.gopluslabs.io/reference/token-security-api) — optional Base security indicators.
-- [Base developer docs](https://docs.base.org/) — chain reference.
-
-**Security:** This is an informational tool; do not submit private keys, wallet seed phrases, or trade instructions. Reuse only public contract addresses.
+- [DEX Screener API](https://docs.dexscreener.com/api/reference)
+- [GoPlus token-security API](https://docs.gopluslabs.io/reference/token-security-api)
+- [Ethereum JSON-RPC](https://ethereum.org/en/developers/docs/apis/json-rpc/)
+- [Solana RPC](https://solana.com/docs/rpc)
+- [Solana SDK mainnet genesis reference](https://github.com/solana-labs/solana/blob/master/sdk/src/genesis_config.rs)

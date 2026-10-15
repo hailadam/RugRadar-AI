@@ -1,2 +1,2 @@
-"""RugRadar AI: read-only Base token risk research tools."""
-__version__ = "0.1.0"
+"""RugRadar AI: read-only multi-network token risk research tools."""
+__version__ = "0.2.0"

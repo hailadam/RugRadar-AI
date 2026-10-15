@@ -1,6 +1,6 @@
 # ◉ RugRadar AI — Base Token Risk Scanner
 
-A **minimal, read-only** cryptocurrency risk-research dashboard for token contracts on **Base Mainnet (chain ID 8453)**. It fetches authentic available DEX Screener pool metrics, scores a small set of **transparent warning rules**, optionally requests GoPlus security indicators, and records scans in local SQLite.
+A read-only** cryptocurrency risk-research dashboard for token contracts on **Base Mainnet (chain ID 8453)**. It fetches authentic available DEX Screener pool metrics, scores a small set of **transparent warning rules**, optionally requests GoPlus security indicators, and records scans in local SQLite.
 
 > **Not a validated AI predictor.** The 0–100 score is an experimental *heuristic indicator*, **not a probability of fraud or a forecast of an imminent rug pull**. A low score is not a safety certification. RugRadar does not audit contracts, control funds, or trade.
 

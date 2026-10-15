@@ -34,7 +34,7 @@ python -m streamlit run app.py --server.port 8501
 
 Open `http://localhost:8501`. Save interface edits and use Streamlit's **Rerun** button when needed. After replacing backend files, stop Streamlit with **Ctrl+C** and run the startup command again so imported modules reload. Python 3.12 is used in CI.
 
-The interface uses a centered teal hero, alternating image-and-text sections, an ivory token scanner, compact metrics, a wide research banner, and a multi-column footer. Serif headlines and still-life artwork follow the supplied visual reference; the original RugRadar logo is retained. Edit `assets/dashboard.css` for appearance, `app.py` for page content and layout, and `.streamlit/config.toml` for native widget colors. Decorative artwork lives in `assets/`. Scanning, scoring, and storage remain in `rugradar/`.
+The interface uses pale sky-blue and aqua panels, a hero with the scan form, a visual warning-score ring, three market cards, highlighted findings with plain-language explanations, and saved price/liquidity/risk charts. Beginner sections explain the checks and how to interpret them. The supplied RugRadar logo is retained. Edit `assets/dashboard.css` for appearance, `app.py` for page structure, `ui_components.py` for presentation helpers, and `.streamlit/config.toml` for native widget colors. Scanning, scoring, and storage remain in `rugradar/`.
 
 For a new checkout:
 
@@ -73,6 +73,8 @@ Only read methods are used. No wallets, private keys, signed transactions, or tr
 - Five GoPlus flags are considered: honeypot, mintability, hidden owner, owner balance changes, and blacklist capability. Only explicit true/false values count as known. Empty, partial, and unknown responses remain incomplete.
 - A positive honeypot flag produces a high-severity warning even without market data. Warning points are experimental and uncalibrated.
 - A zero-point result with incomplete coverage displays **Incomplete**, rather than `0/100`. Positive findings can appear alongside incomplete coverage.
+- Risk badges follow the backend severity, including a High badge for a positive honeypot warning at 45 points. A completed zero-point result shows Low observed warnings with an explicit note that safety is not verified.
+- Charts appear only when at least two saved values are available for the current network, token, and pool. Unknown observations break chart lines instead of being filled with zero or joined across a gap.
 - **Sources and check coverage** identifies available, partial, unavailable, unsupported, and disabled checks. Provider failure never becomes a passed security check.
 
 This version does not provide exhaustive token discovery, batch scanning, continuous monitoring, historical incident databases, holder concentration analysis, liquidity-lock verification, source auditing, or sell simulations. It cannot identify every scam or predict every future liquidity withdrawal.
@@ -95,10 +97,11 @@ Tests use mocked providers and temporary databases. They cover network selection
 
 ```text
 app.py                         Dashboard layout and interaction
+ui_components.py               Risk ring, finding explanations, icons, and chart presentation
 assets/logo.png                Website logo and browser icon
-assets/hero.png                Scanner still-life artwork
-assets/hero-scene.png          Wide hero and research-banner artwork
-assets/detail.png              Alternating editorial-section artwork
+assets/hero.png                Optional still-life artwork retained from the earlier interface
+assets/hero-scene.png          Optional wide artwork
+assets/detail.png              Optional detail artwork
 assets/dashboard.css           Responsive page styles
 .streamlit/config.toml         Light theme and deep teal controls
 rugradar/networks.py           Network registry and address validation

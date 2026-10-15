@@ -23,85 +23,49 @@ def clear_result():
 
 
 active_network = get_network(st.session_state.get("network", "base"))
-st.markdown("""<style>
-    .stApp {background: #08111F; color: #E7EEF9;}
-    .block-container {max-width: 1080px; padding: 4.25rem 2.2rem 2rem;}
-    [data-testid="stHeader"] {background: #08111F;}
-    h1, h2, h3 {letter-spacing: -0.035em;}
-    h1 {font-size: 2.65rem !important; font-weight: 650 !important; line-height: 1.15 !important;}
-    h2, h3 {font-size: 1.15rem !important;}
-    [data-testid="stCaptionContainer"] {color: #94A8C3;}
-    .brand-header {display: flex; align-items: center; justify-content: space-between;
-        gap: 1rem; padding-bottom: 1.65rem; border-bottom: 1px solid #20304A; margin-bottom: 2.6rem;}
-    .brand {display: flex; align-items: center; gap: .8rem;}
-    .brand-icon {display: block; width: 42px; height: 64px; flex-shrink: 0; object-fit: contain;}
-    .brand-name {font-size: 1.3rem; font-weight: 650; letter-spacing: -.04em; line-height: 1.25;}
-    .brand-name span {color: #71ADFF;}
-    .brand-note {color: #94A8C3; font-size: .65rem; letter-spacing: .13em; margin-top: .25rem;}
-    .network-pill {display: inline-flex; align-items: center; gap: .5rem;
-        white-space: nowrap; border: 1px solid #284D7D; background: #102541;
-        color: #97C4FF; border-radius: 999px; padding: .48rem .75rem;
-        font-size: .65rem; font-weight: 600; letter-spacing: .1em;}
-    .network-dot {height: 6px; width: 6px; border-radius: 50%; background: #71ADFF;}
-    .eyebrow {color: #71ADFF; font-size: .68rem; letter-spacing: .16em;
-        font-weight: 600; margin: 0 0 .7rem;}
-    .hero-description {color: #94A8C3; font-size: .98rem; line-height: 1.7;
-        max-width: 620px; margin: .1rem 0 1.6rem;}
-    [data-testid="stForm"] {background: #0D1A2D; border: 1px solid #243650;
-        border-radius: 16px; padding: 1.4rem;}
-    [data-testid="stTextInput"] input {min-height: 46px; font-family: monospace; font-size: .9rem;}
-    [data-testid="stTextInput"] [data-baseweb="input"] {background: #08111F; border-radius: 9px;}
-    [data-testid="stFormSubmitButton"] button {min-height: 46px; border-radius: 9px;
-        font-weight: 600; color: #FFFFFF; background: #286FE0; border: 1px solid #438EFF;}
-    [data-testid="stFormSubmitButton"] button:hover {background: #357FF0;}
-    [data-testid="stFormSubmitButton"] button:focus-visible {outline: 2px solid #A5CAFF; outline-offset: 3px;}
-    [data-testid="stExpander"] {border-color: #243650; border-radius: 10px;}
-    .overview-label {color: #94A8C3; font-size: .68rem; font-weight: 600;
-        letter-spacing: .14em; margin: 1.8rem 0 .75rem;}
-    .st-key-risk_card, .st-key-liquidity_card, .st-key-volume_card {
-        background: #0D1A2D; border: 1px solid #243650; border-radius: 14px;
-        min-height: 190px; padding: 1.2rem;}
-    [data-testid="stMetricLabel"] {color: #A3B5CD; font-size: .8rem;}
-    [data-testid="stMetricValue"] {font-size: 1.85rem; font-weight: 600; letter-spacing: -.04em;}
-    .st-key-risk_card [data-testid="stMetricValue"] {color: #97C4FF;}
-    .empty-state {border: 1px dashed #2B3D56; border-radius: 14px;
-        padding: 1.5rem; margin-top: 1.25rem; text-align: center;}
-    .empty-title {color: #D3E0F2; font-size: .93rem; font-weight: 500; margin-bottom: .35rem;}
-    .empty-description {color: #94A8C3; font-size: .83rem; line-height: 1.6;}
-    .dashboard-footer {border-top: 1px solid #20304A; margin-top: 2.3rem;
-        padding-top: 1rem; color: #94A8C3; font-size: .73rem; line-height: 1.8;}
-    @media (max-width: 640px) {
-        .block-container {padding: 4.25rem 1rem 1.5rem;}
-        .brand-header {gap: .6rem; margin-bottom: 2rem;}
-        .brand-note {font-size: .55rem; letter-spacing: .07em;}
-        .brand-name {font-size: 1.1rem;}
-        .brand-icon {width: 36px; height: 54px;}
-        .network-pill {font-size: .55rem; padding: .4rem .55rem; letter-spacing: .04em;}
-        h1 {font-size: 2rem !important;}
-        [data-testid="stForm"] {padding: 1rem;}
-        .st-key-risk_card, .st-key-liquidity_card, .st-key-volume_card {min-height: 155px;}
-    }
-</style>""", unsafe_allow_html=True)
+styles = (Path(__file__).parent / "assets" / "dashboard.css").read_text()
+hero_data = base64.b64encode((Path(__file__).parent / "assets" / "hero.png").read_bytes()).decode("ascii")
+st.markdown(f"<style>{styles}</style>", unsafe_allow_html=True)
 
 st.markdown(f"""
-<div class="brand-header">
-    <div class="brand">
-        <img class="brand-icon" src="data:image/png;base64,{logo_data}" alt="RugRadar AI logo" width="42" height="64">
+<header class="brand-header" id="top">
+    <a class="brand" href="#top" aria-label="RugRadar AI home">
+        <img class="brand-icon" src="data:image/png;base64,{logo_data}" alt="" width="28" height="45">
         <div><div class="brand-name">RugRadar <span>AI</span></div>
-            <div class="brand-note">TOKEN RISK INTELLIGENCE</div></div>
-    </div>
+            <div class="brand-note">A CLEARER PERSPECTIVE</div></div>
+    </a>
+    <nav class="header-links" aria-label="Main navigation">
+        <a href="#top">Overview</a><a href="#scanner">Token scanner</a><a href="#approach">Our approach</a>
+    </nav>
     <div class="network-pill"><span class="network-dot" aria-hidden="true"></span>{active_network.name.upper()} MAINNET</div>
+</header>
+<section class="hero" aria-labelledby="hero-title">
+    <div class="hero-copy">
+        <p class="eyebrow">TOKEN RESEARCH, WITH PERSPECTIVE</p>
+        <h1 id="hero-title">Look closer.<br><em>See the signals.</em></h1>
+        <p class="hero-description">Explore liquidity, market activity, and contract warnings across eight networks. A clearer place to begin your research.</p>
+        <a class="hero-link" href="#scanner">Explore a token <span aria-hidden="true">↗</span></a>
+    </div>
+    <div class="hero-art">
+        <img src="data:image/png;base64,{hero_data}" alt="" width="768" height="512">
+        <span class="hero-art-note">A LITTLE MORE PERSPECTIVE.</span>
+    </div>
+</section>
+<div class="trust-strip" aria-label="Research features">
+    <span><span class="trust-mark" aria-hidden="true">◈</span> Eight supported networks</span>
+    <span><span class="trust-mark" aria-hidden="true">↗</span> Read-only research</span>
+    <span><span class="trust-mark" aria-hidden="true">◎</span> No wallet connection</span>
 </div>
-<p class="eyebrow">MULTICHAIN TOKEN RESEARCH</p>
+<div class="section-heading" id="scanner">
+    <div><p class="eyebrow">01 / THE TOKEN DESK</p><h2>Start with an address.</h2></div>
+    <p class="section-note">Choose a network and explore the available evidence. Every signal in its proper context.</p>
+</div>
 """, unsafe_allow_html=True)
-st.title("A clearer view of token risk.")
-st.markdown('<p class="hero-description">Review market signals, liquidity, and contract warnings in one place. '
-            'Read-only analysis. No wallet connection required.</p>', unsafe_allow_html=True)
 
 selected_network = st.selectbox("Network", list(NETWORKS), format_func=lambda key: NETWORKS[key].name,
                                 key="network", on_change=clear_result)
 active_network = get_network(selected_network)
-st.caption("Choose the network where the token was issued. The same address can refer to different contracts on different networks.")
+st.caption("Select the token’s network. An address can identify different contracts on different networks.")
 
 with st.form("scan_form"):
     input_col, button_col = st.columns([4, 1.35], vertical_alignment="bottom")
@@ -196,11 +160,31 @@ if snapshot is not None and report is not None:
             st.warning("Saved history could not be read. The current provider results are still shown above.")
 else:
     st.markdown('''<div class="empty-state">
-        <div class="empty-title">Your next analysis starts here.</div>
-        <div class="empty-description">Choose a network and enter a token address to review available evidence.<br>
-        Results appear after analysis; unavailable signals remain unknown.</div>
+        <div class="empty-icon" aria-hidden="true">↗</div>
+        <div><div class="empty-title">A fresh perspective starts here.</div>
+        <div class="empty-description">Your results will appear after analysis. Unavailable signals remain unknown.</div></div>
     </div>''', unsafe_allow_html=True)
 
-st.markdown('<div class="dashboard-footer">Research tool only · Market warnings do not prove misconduct · '
-            'A low score does not certify safety</div>', unsafe_allow_html=True)
-st.caption("Local SQLite history may reset on Streamlit Community Cloud; use an external database for durable hosted monitoring.")
+st.markdown(f"""
+<section class="research-story" id="approach" aria-labelledby="approach-title">
+    <div class="story-visual" aria-hidden="true">
+        <div class="orbit">
+            <img class="orbit-logo" src="data:image/png;base64,{logo_data}" alt="" width="42" height="70">
+            <span class="orbit-point one"></span><span class="orbit-point two"></span><span class="orbit-point three"></span>
+        </div>
+        <div class="story-visual-label">MARKET SIGNALS / CONTRACT OBSERVATIONS</div>
+    </div>
+    <div class="story-copy">
+        <p class="eyebrow">02 / A MORE CONSIDERED APPROACH</p>
+        <h2>Signals, with context.</h2>
+        <p>One score never tells the whole story. Review the evidence behind each observation, see where data is missing, and return to saved scans as your research develops.</p>
+        <div class="network-list" aria-label="Supported networks">
+            {''.join(f'<span>{network.name}</span>' for network in NETWORKS.values())}
+        </div>
+    </div>
+</section>
+<footer class="dashboard-footer">
+    <div class="footer-brand">Stay curious. Look closer.</div>
+    <div class="footer-note">A research tool, with limits. Warning scores are experimental; a low score does not certify safety.</div>
+</footer>
+""", unsafe_allow_html=True)

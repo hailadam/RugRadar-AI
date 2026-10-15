@@ -34,6 +34,8 @@ python -m streamlit run app.py --server.port 8501
 
 Open `http://localhost:8501`. Save interface edits and use Streamlit's **Rerun** button when needed. After replacing backend files, stop Streamlit with **Ctrl+C** and run the startup command again so imported modules reload. Python 3.12 is used in CI.
 
+The interface uses mist teal, ivory panels, serif headlines, and the supplied RugRadar logo. Edit `assets/dashboard.css` for appearance, `app.py` for page content and layout, and `.streamlit/config.toml` for native widget colors. The decorative hero is `assets/hero.png`. Scanning, scoring, and storage remain in `rugradar/`.
+
 For a new checkout:
 
 ```bash
@@ -94,7 +96,9 @@ Tests use mocked providers and temporary databases. They cover network selection
 ```text
 app.py                         Dashboard layout and interaction
 assets/logo.png                Website logo and browser icon
-.streamlit/config.toml         Navy theme and blue accents
+assets/hero.png                Decorative teal still-life artwork
+assets/dashboard.css           Responsive page styles
+.streamlit/config.toml         Light theme and deep teal controls
 rugradar/networks.py           Network registry and address validation
 rugradar/market.py             Chain-specific market adapter
 rugradar/security.py           EVM GoPlus adapter and flag parsing

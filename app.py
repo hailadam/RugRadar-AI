@@ -23,63 +23,65 @@ def clear_result():
 
 
 active_network = get_network(st.session_state.get("network", "base"))
-styles = (Path(__file__).parent / "assets" / "dashboard.css").read_text()
-hero_data = base64.b64encode((Path(__file__).parent / "assets" / "hero.png").read_bytes()).decode("ascii")
+assets_path = Path(__file__).parent / "assets"
+styles = (assets_path / "dashboard.css").read_text()
+hero_data = base64.b64encode((assets_path / "hero-scene.png").read_bytes()).decode("ascii")
+scanner_art = base64.b64encode((assets_path / "hero.png").read_bytes()).decode("ascii")
+detail_art = base64.b64encode((assets_path / "detail.png").read_bytes()).decode("ascii")
 st.markdown(f"<style>{styles}</style>", unsafe_allow_html=True)
 
 st.markdown(f"""
-<header class="brand-header" id="top">
+<div class="announcement-bar" id="top"><span>INDEPENDENT SIGNALS. A CLEARER PERSPECTIVE.</span><span>Read-only token research <span aria-hidden="true">↗</span></span></div>
+<header class="brand-header">
     <a class="brand" href="#top" aria-label="RugRadar AI home">
         <img class="brand-icon" src="data:image/png;base64,{logo_data}" alt="" width="28" height="45">
         <div><div class="brand-name">RugRadar <span>AI</span></div>
-            <div class="brand-note">A CLEARER PERSPECTIVE</div></div>
+            <div class="brand-note">RESEARCH WITH PERSPECTIVE</div></div>
     </a>
     <nav class="header-links" aria-label="Main navigation">
-        <a href="#top">Overview</a><a href="#scanner">Token scanner</a><a href="#approach">Our approach</a>
+        <a href="#scanner">Token scanner</a><a href="#signals">Market signals</a><a href="#approach">Our approach</a>
     </nav>
     <div class="network-pill"><span class="network-dot" aria-hidden="true"></span>{active_network.name.upper()} MAINNET</div>
 </header>
 <section class="hero" aria-labelledby="hero-title">
+    <img class="hero-backdrop" src="data:image/png;base64,{hero_data}" alt="" width="1536" height="1024">
     <div class="hero-copy">
-        <p class="eyebrow">TOKEN RESEARCH, WITH PERSPECTIVE</p>
+        <p class="eyebrow">A LITTLE MORE CLARITY, BEFORE YOUR NEXT MOVE</p>
         <h1 id="hero-title">Look closer.<br><em>See the signals.</em></h1>
-        <p class="hero-description">Explore liquidity, market activity, and contract warnings across eight networks. A clearer place to begin your research.</p>
-        <a class="hero-link" href="#scanner">Explore a token <span aria-hidden="true">↗</span></a>
+        <p class="hero-description">An informed perspective starts with the details. Explore market activity, liquidity, and contract observations across eight networks.</p>
+        <a class="pill-link" href="#scanner">Explore a token <span aria-hidden="true">↗</span></a>
     </div>
-    <div class="hero-art">
-        <img src="data:image/png;base64,{hero_data}" alt="" width="768" height="512">
-        <span class="hero-art-note">A LITTLE MORE PERSPECTIVE.</span>
-    </div>
+    <div class="hero-footnote">EIGHT NETWORKS <span aria-hidden="true">/</span> ONE PLACE TO BEGIN</div>
 </section>
-<div class="trust-strip" aria-label="Research features">
-    <span><span class="trust-mark" aria-hidden="true">◈</span> Eight supported networks</span>
-    <span><span class="trust-mark" aria-hidden="true">↗</span> Read-only research</span>
-    <span><span class="trust-mark" aria-hidden="true">◎</span> No wallet connection</span>
-</div>
-<div class="section-heading" id="scanner">
-    <div><p class="eyebrow">01 / THE TOKEN DESK</p><h2>Start with an address.</h2></div>
-    <p class="section-note">Choose a network and explore the available evidence. Every signal in its proper context.</p>
-</div>
 """, unsafe_allow_html=True)
 
-selected_network = st.selectbox("Network", list(NETWORKS), format_func=lambda key: NETWORKS[key].name,
-                                key="network", on_change=clear_result)
-active_network = get_network(selected_network)
-st.caption("Select the token’s network. An address can identify different contracts on different networks.")
-
-with st.form("scan_form"):
-    input_col, button_col = st.columns([4, 1.35], vertical_alignment="bottom")
-    with input_col:
-        address = st.text_input("Contract address" if active_network.evm else "Token mint address",
-                                placeholder="0x… · token contract" if active_network.evm else "Solana token mint address",
-                                key="contract_address")
-    with button_col:
-        submitted = st.form_submit_button("Analyze Token", use_container_width=True, type="primary")
-    with st.expander("Analysis options"):
-        check_security = st.checkbox("Request GoPlus contract-security data", value=active_network.goplus_chain_id is not None,
-                                      disabled=active_network.goplus_chain_id is None,
-                                      help="Available on the supported EVM networks. Solana uses market data and optional configured blockchain reads. Provider data can be incomplete or unavailable.")
-        st.caption(f"Optional direct blockchain lookup: configure {active_network.rpc_env} in your local .env file. It is read-only.")
+with st.container(key="scanner_section"):
+    scanner_col, visual_col = st.columns([1, 1], gap="large", vertical_alignment="center")
+    with scanner_col:
+        st.markdown('''<div class="scanner-heading" id="scanner">
+            <p class="eyebrow">01 / START YOUR RESEARCH</p>
+            <h2>Small details.<br>A clearer picture.</h2>
+            <p class="section-note">Every token has a context. Choose its network, enter an address, and take a closer look at the available evidence.</p>
+        </div>''', unsafe_allow_html=True)
+        selected_network = st.selectbox("Network", list(NETWORKS), format_func=lambda key: NETWORKS[key].name,
+                                        key="network", on_change=clear_result,
+                                        help="Choose the token’s issuing network. The same address can identify different contracts on different networks.")
+        active_network = get_network(selected_network)
+        with st.form("scan_form"):
+            address = st.text_input("Contract address" if active_network.evm else "Token mint address",
+                                    placeholder="0x… · token contract" if active_network.evm else "Solana token mint address",
+                                    key="contract_address")
+            submitted = st.form_submit_button("Analyze Token", type="primary")
+            with st.expander("Analysis options"):
+                check_security = st.checkbox("Request GoPlus contract-security data", value=active_network.goplus_chain_id is not None,
+                                              disabled=active_network.goplus_chain_id is None,
+                                              help="Available on the supported EVM networks. Solana uses market data and optional configured blockchain reads. Provider data can be incomplete or unavailable.")
+                st.caption(f"Optional direct blockchain lookup: configure {active_network.rpc_env} in your local .env file. It is read-only.")
+    with visual_col:
+        st.markdown(f'''<div class="scanner-art" aria-hidden="true">
+            <img src="data:image/png;base64,{scanner_art}" alt="" width="768" height="768">
+            <span class="art-caption">A CLOSER LOOK CHANGES YOUR PERSPECTIVE.</span>
+        </div>''', unsafe_allow_html=True)
 
 if submitted:
     try:
@@ -96,7 +98,7 @@ if result is not None and (not isinstance(result, ScanResult) or result.snapshot
 
 if result is not None:
     snapshot, report = result.snapshot, result.report
-    st.markdown('<p class="overview-label">TOKEN OVERVIEW</p>', unsafe_allow_html=True)
+    st.markdown('<p class="overview-label" id="signals">TOKEN OVERVIEW</p>', unsafe_allow_html=True)
     st.subheader(f"{snapshot.name} ({snapshot.symbol})")
     st.caption(f"{active_network.name} · {snapshot.dex} · {snapshot.captured_at}")
     st.code(snapshot.address, language=None)
@@ -104,7 +106,7 @@ if result is not None:
         st.warning("Assessment incomplete. Some checks have no usable data; a low warning score does not establish safety.")
 else:
     snapshot = report = None
-    st.markdown('<p class="overview-label">MARKET OVERVIEW</p>', unsafe_allow_html=True)
+    st.markdown('<p class="overview-label" id="signals">MARKET OVERVIEW</p>', unsafe_allow_html=True)
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -167,24 +169,51 @@ else:
 
 st.markdown(f"""
 <section class="research-story" id="approach" aria-labelledby="approach-title">
-    <div class="story-visual" aria-hidden="true">
-        <div class="orbit">
-            <img class="orbit-logo" src="data:image/png;base64,{logo_data}" alt="" width="42" height="70">
-            <span class="orbit-point one"></span><span class="orbit-point two"></span><span class="orbit-point three"></span>
-        </div>
-        <div class="story-visual-label">MARKET SIGNALS / CONTRACT OBSERVATIONS</div>
+    <div class="story-visual">
+        <img src="data:image/png;base64,{detail_art}" alt="" width="768" height="768">
     </div>
     <div class="story-copy">
-        <p class="eyebrow">02 / A MORE CONSIDERED APPROACH</p>
-        <h2>Signals, with context.</h2>
-        <p>One score never tells the whole story. Review the evidence behind each observation, see where data is missing, and return to saved scans as your research develops.</p>
-        <div class="network-list" aria-label="Supported networks">
-            {''.join(f'<span>{network.name}</span>' for network in NETWORKS.values())}
-        </div>
+        <p class="eyebrow">02 / THE BIGGER PICTURE</p>
+        <h2>Every signal<br>has a story.</h2>
+        <p>Liquidity. Trading activity. Contract observations. Consider them together, with the evidence behind each finding.</p>
+        <p>See what is known, understand what is missing, and revisit saved scans as your research develops. A single score is only a starting point.</p>
+        <a class="text-link" href="#signals">Explore the signals <span aria-hidden="true">↗</span></a>
     </div>
 </section>
-<footer class="dashboard-footer">
-    <div class="footer-brand">Stay curious. Look closer.</div>
-    <div class="footer-note">A research tool, with limits. Warning scores are experimental; a low score does not certify safety.</div>
+<section class="perspective-banner" aria-labelledby="perspective-title">
+    <img src="data:image/png;base64,{hero_data}" alt="" width="1536" height="1024">
+    <div class="banner-copy">
+        <p class="eyebrow">STAY CURIOUS. KEEP YOUR PERSPECTIVE.</p>
+        <h2 id="perspective-title">Better questions.<br>A clearer place to start.</h2>
+        <p>Eight networks. Available evidence.<br>Space to make your own assessment.</p>
+        <a class="pill-link light" href="#scanner">Start your research <span aria-hidden="true">↗</span></a>
+    </div>
+</section>
+<footer class="site-footer">
+    <div class="footer-grid">
+        <div class="footer-intro">
+            <a class="brand" href="#top" aria-label="RugRadar AI home">
+                <img class="brand-icon" src="data:image/png;base64,{logo_data}" alt="" width="28" height="45">
+                <span class="brand-name">RugRadar <span>AI</span></span>
+            </a>
+            <h2>A little clarity.<br>A wider perspective.</h2>
+        </div>
+        <div class="footer-links">
+            <h3>Explore</h3>
+            <a href="#scanner">Token scanner</a>
+            <a href="#signals">Market signals</a>
+            <a href="#approach">Our approach</a>
+        </div>
+        <div class="footer-networks">
+            <h3>Across networks</h3>
+            <div class="network-list">{''.join(f'<span>{network.name}</span>' for network in NETWORKS.values())}</div>
+        </div>
+        <div class="footer-about">
+            <h3>Research, with context</h3>
+            <p>Warning scores are experimental. Missing information remains unknown, and a low score does not certify safety.</p>
+            <span class="footer-readonly"><span class="network-dot" aria-hidden="true"></span> Read-only. No wallet required.</span>
+        </div>
+    </div>
+    <div class="footer-bottom"><span>RugRadar AI / Token research</span><a href="#top">Back to top <span aria-hidden="true">↑</span></a></div>
 </footer>
 """, unsafe_allow_html=True)
